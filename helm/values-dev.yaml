@@ -1,22 +1,52 @@
+# ----------------------------
+# Image
+# ----------------------------
 imageRegistry: ""
 image:
   repository: n8n-custom
   tag: "latest"
   pullPolicy: IfNotPresent
 
+# ----------------------------
+# Service Account
+# ----------------------------
 serviceAccount:
   create: true
   name: n8n-dev-sa
 
+# ----------------------------
+# Ingress (optional)
+# ----------------------------
 ingress:
-  enabled: true
-  className: nginx
+  enabled: true               # Set false to use port-forward instead
+  className: nginx            # Ensure minikube ingress controller enabled
   host: n8n.local
-  tls: []
+  tls: []                     # Add TLS secrets if required
 
+# ----------------------------
+# Service (exposes Pod to cluster / host)
+# ----------------------------
+service:
+  type: ClusterIP             # For local dev, ClusterIP is fine
+  port: 5678                  # Exposed port in the cluster
+  targetPort: 5678            # Matches containerPort in Pod
+
+# ----------------------------
+# Persistent Storage
+# ----------------------------
+persistence:
+  enabled: true
+  storageClass: ""            # Use Minikube default storage
+  accessMode: ReadWriteOnce
+  size: 1Gi                   # Adjust based on expected data
+  mountPath: /home/node/.n8n
+
+# ----------------------------
+# Pod configurations
+# ----------------------------
 pods:
   frontend:
-    enabled: false
+    enabled: false            # Frontend disabled for dev; only API needed
 
   api:
     replicas: 1
@@ -25,9 +55,31 @@ pods:
         image:
           repository: n8n-custom
           tag: latest
+        ports:
+          - name: http
+            containerPort: 5678
         env:
-          GENERIC_TIMEZONE: "Australia/Sydney"
-          N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-          DB_TYPE: "sqlite"
-          DB_SQLITE_VACUUM_ON_STARTUP: "true"
-          N8N_BASIC_AUTH_ACTIVE: "true"
+          - name: GENERIC_TIMEZONE
+            value: "Australia/Sydney"
+          - name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+            value: "true"
+          - name: DB_TYPE
+            value: "sqlite"
+          - name: DB_SQLITE_VACUUM_ON_STARTUP
+            value: "true"
+          - name: N8N_BASIC_AUTH_ACTIVE
+            value: "true"
+          - name: N8N_BASIC_AUTH_USER
+            value: "admin"
+          - name: N8N_BASIC_AUTH_PASSWORD
+            value: "admin123"
+        volumeMounts:
+          - name: n8n-data
+            mountPath: /home/node/.n8n
+
+# Volumes for persistence
+volumes:
+  - name: n8n-data
+    persistentVolumeClaim:
+      claimName: n8n-pvc
+
