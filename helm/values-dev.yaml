@@ -4,7 +4,7 @@ timezone: Australia/Sydney
 
 image:
   repository: nomad1111/n8n-custom
-  tag: dev
+  tag: develop
   pullPolicy: IfNotPresent
 
 ingress:
