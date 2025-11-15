@@ -16,7 +16,7 @@ timezone: Australia/Sydney
 # ----------------------------
 image:
   repository: n8nio/n8n
-  tag: latest
+  tag: develop
   pullPolicy: IfNotPresent
   # Optional: Override command/args if needed
   # command: ["/docker-entrypoint.sh"]
