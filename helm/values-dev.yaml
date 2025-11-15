@@ -11,7 +11,7 @@ serviceAccount:
 imageRegistry: ""
 image:
   repository: nomad1111/n8n-custom
-  tag: develop                # <--- dev builds from 'develop' branch
+  tag: develop
   pullPolicy: IfNotPresent
 
 # ----------------------------
