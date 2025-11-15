@@ -118,6 +118,8 @@ jobs:
       # Step 8: Install Helm for chart validation (PRs) and deployment (pushes)
       - name: Install Helm
         uses: azure/setup-helm@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           version: 'latest'
 
