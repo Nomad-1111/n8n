@@ -1,0 +1,88 @@
+# ============================================================================
+# CodeQL Security Analysis Workflow
+# ============================================================================
+# This workflow runs CodeQL analysis on pull requests to detect security
+# vulnerabilities in the codebase. Results are uploaded to GitHub Security tab.
+# This workflow is non-blocking and will not prevent merges or deployments.
+# ============================================================================
+
+name: "CodeQL Security Analysis"
+
+# Workflow triggers
+on:
+  # Run on pull requests targeting main branches
+  pull_request:
+    branches:
+      - develop
+      - uat
+      - main
+  # Allow manual triggering
+  workflow_dispatch:
+  # Run on schedule (weekly) to catch new vulnerabilities
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight UTC
+
+# Permissions required for CodeQL analysis
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+# Job definitions
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    
+    # Strategy for running analysis
+    strategy:
+      fail-fast: false
+      matrix:
+        # Auto-detect languages, but explicitly list common ones for n8n
+        language: ['javascript', 'typescript']
+        # CodeQL will auto-detect if these aren't present
+    
+    steps:
+      # Step 1: Checkout repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Initialize CodeQL
+      # Sets up CodeQL CLI and prepares for analysis
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          # If you don't specify a queries section, it uses the default set of queries
+          # which includes security and quality queries
+          queries: security-extended,security-and-quality
+
+      # Step 3: Autobuild (optional)
+      # CodeQL will attempt to build the code automatically
+      # For n8n, this may not be necessary if we're just scanning config files
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+        continue-on-error: true  # Don't fail if build fails
+
+      # Step 4: Perform CodeQL Analysis
+      # Analyzes the code and generates results
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          # Upload results to GitHub Security tab
+          upload: true
+          # Output directory for results
+          output: codeql-results
+          # Category for organizing results
+          category: "/language:${{ matrix.language }}"
+        continue-on-error: true  # Non-blocking: don't fail workflow on findings
+
+      # Step 5: Upload results as artifact (optional, for manual review)
+      - name: Upload CodeQL results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: codeql-results-${{ matrix.language }}
+          path: codeql-results
+          retention-days: 30
+
