@@ -15,9 +15,12 @@ timezone: Australia/Sydney
 # Image
 # ----------------------------
 image:
-  repository: nomad1111/n8n-custom
-  tag: uat
+  repository: n8nio/n8n
+  tag: latest
   pullPolicy: Always
+  # TODO: Switch back to nomad1111/n8n-custom:uat once image is built and pushed
+  # repository: nomad1111/n8n-custom
+  # tag: uat
   # Optional: imagePullSecrets for Docker Hub authentication (recommended to avoid rate limits)
   # pullSecrets: ["dockerhub-secret"]
   # Optional: Override command/args if needed
