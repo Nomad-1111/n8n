@@ -28,6 +28,8 @@ jobs:
     permissions:
       # Required to commit and push Helm values updates back to repository
       contents: write        # <--- REQUIRED so workflow can push Helm updates
+      # Required to upload security scan results to GitHub Security tab
+      security-events: write
 
     # Workflow steps - executed sequentially
     steps:
@@ -56,19 +58,49 @@ jobs:
         run: |
           docker build -t n8n-custom:${{ github.ref_name }} -f docker/Dockerfile ./docker
 
-      # Step 5: Tag image for Docker Hub repository
+      # Step 5: Scan Docker image for vulnerabilities with Trivy
+      # Scans the built image for OS packages, application dependencies, and config issues
+      # Results are uploaded to GitHub Security tab but won't block deployment
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          # Image to scan (the one we just built)
+          image-ref: n8n-custom:${{ github.ref_name }}
+          # Output format: SARIF for GitHub Security tab integration
+          format: 'sarif'
+          # Output file for SARIF results
+          output: 'trivy-results.sarif'
+          # Exit code 0 = non-blocking (workflow continues even if vulnerabilities found)
+          exit-code: '0'
+          # Scan types: vulnerabilities in OS packages and dependencies
+          scan-type: 'image'
+          # Severity levels to report (all levels)
+          severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
+          # Additional options
+          scanners: 'vuln,config,secret'
+
+      # Step 6: Upload Trivy results to GitHub Security tab
+      # Makes vulnerability findings visible in repository Security tab
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()  # Upload even if Trivy step had warnings
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-docker-scan'
+
+      # Step 7: Tag image for Docker Hub repository
       # Formats image name as: nomad1111/n8n-custom:<branch-name>
       - name: Tag image for Docker Hub
         run: |
           docker tag n8n-custom:${{ github.ref_name }} nomad1111/n8n-custom:${{ github.ref_name }}
 
-      # Step 6: Push image to Docker Hub
+      # Step 8: Push image to Docker Hub
       # Makes image available for Kubernetes to pull
       - name: Push Docker image
         run: |
           docker push nomad1111/n8n-custom:${{ github.ref_name }}
 
-      # Step 7: Determine which Helm values file to update
+      # Step 9: Determine which Helm values file to update
       # Maps branch name to corresponding values file
       - name: Select correct Helm values file
         id: selectfile
@@ -78,7 +110,7 @@ jobs:
           if [ "${{ github.ref_name }}" = "main" ]; then FILE="helm/values-prod.yaml"; fi
           echo "file=$FILE" >> $GITHUB_OUTPUT
 
-      # Step 8: Update Helm values file with new image information
+      # Step 10: Update Helm values file with new image information
       # Updates repository and tag, removes TODO comments
       - name: Update image in Helm values
         run: |
@@ -100,7 +132,7 @@ jobs:
           echo "Updated image configuration:"
           grep -A 2 "image:" "$FILE" | head -3
 
-      # Step 9: Commit and push updated Helm values
+      # Step 11: Commit and push updated Helm values
       # Commits changes back to repository, triggering Argo CD sync
       - name: Commit updated values
         run: |
