@@ -103,8 +103,10 @@ jobs:
           scan-type: 'image'
           # Severity levels to report (all levels)
           severity: 'CRITICAL,HIGH,MEDIUM,LOW,UNKNOWN'
-          # Additional options
-          scanners: 'vuln,config,secret'
+          # Additional options - use misconfig instead of deprecated config
+          scanners: 'vuln,misconfig,secret'
+          # Use latest Trivy version
+          version: 'latest'
 
       # Step 7: Upload Trivy results to GitHub Security tab
       # Makes vulnerability findings visible in repository Security tab
