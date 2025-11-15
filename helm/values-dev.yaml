@@ -6,9 +6,14 @@ serviceAccount:
   name: n8n-dev-sa
 
 # ----------------------------
+# App Settings
+# ----------------------------
+replicas: 1
+timezone: Australia/Sydney
+
+# ----------------------------
 # Image
 # ----------------------------
-imageRegistry: ""
 image:
   repository: nomad1111/n8n-custom
   tag: develop
@@ -32,7 +37,7 @@ service:
   targetPort: 5678
 
 # ----------------------------
-# Persistent Storage
+# Persistence
 # ----------------------------
 persistence:
   enabled: true
@@ -40,51 +45,3 @@ persistence:
   accessMode: ReadWriteOnce
   size: 1Gi
   mountPath: /home/node/.n8n
-
-# ----------------------------
-# Pods
-# ----------------------------
-pods:
-  frontend:
-    enabled: false
-
-  api:
-    replicas: 1
-    containers:
-      api:
-        image:
-          repository: nomad1111/n8n-custom
-          tag: develop
-        ports:
-          - name: http
-            containerPort: 5678
-        env:
-          - name: N8N_PORT
-            value: "5678"
-          - name: N8N_HOST
-            value: "0.0.0.0"
-          - name: GENERIC_TIMEZONE
-            value: "Australia/Sydney"
-          - name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
-            value: "true"
-          - name: DB_TYPE
-            value: "sqlite"
-          - name: DB_SQLITE_VACUUM_ON_STARTUP
-            value: "true"
-          - name: N8N_BASIC_AUTH_ACTIVE
-            value: "true"
-          - name: N8N_BASIC_AUTH_USER
-            value: "admin"
-          - name: N8N_BASIC_AUTH_PASSWORD
-            value: "admin123"
-        volumeMounts:
-          - name: n8n-data
-            mountPath: /home/node/.n8n
-
-# ----------------------------
-# Volumes
-# ----------------------------
-volumes:
-  - name: n8n-data
-    persistentVolumeClaim:
-      claimName: n8n-pvc
