@@ -1,16 +1,17 @@
-name: CI/CD: Build & Deploy n8n
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
-      - main
       - develop
-      - prod
-  pull_request:
+      - uat
+      - main
 
 jobs:
-  build:
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -26,41 +27,28 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${DOCKER_USERNAME}/n8n-custom:${GITHUB_REF_NAME} ./compose
+          docker build -t n8n-custom:${{ github.ref_name }} ./compose
+
+      - name: Tag image for Docker Hub
+        run: |
+          docker tag n8n-custom:${{ github.ref_name }} nomad1111/n8n-custom:${{ github.ref_name }}
 
       - name: Push Docker image
         run: |
-          docker push ${DOCKER_USERNAME}/n8n-custom:${GITHUB_REF_NAME}
+          docker push nomad1111/n8n-custom:${{ github.ref_name }}
 
-      - name: Update Helm values file
+      - name: Update correct Helm values file
         run: |
-          if [[ "${GITHUB_REF_NAME}" == "develop" ]]; then FILE=helm/values-dev.yaml; fi
-          if [[ "${GITHUB_REF_NAME}" == "uat" ]]; then FILE=helm/values-uat.yaml; fi
-          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then FILE=helm/values-prod.yaml; fi
-          sed -i "s|tag: .*|tag: ${GITHUB_REF_NAME}|" $FILE
+          if [ "${{ github.ref_name }}" = "develop" ]; then FILE="helm/values-dev.yaml"; fi
+          if [ "${{ github.ref_name }}" = "uat" ]; then FILE="helm/values-uat.yaml"; fi
+          if [ "${{ github.ref_name }}" = "main" ]; then FILE="helm/values-prod.yaml"; fi
+          echo "Updating tag in $FILE"
+          sed -i "s|tag: .*|tag: ${{ github.ref_name }}|" "$FILE"
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install ArgoCD CLI
+      - name: Commit updated values
         run: |
-          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          chmod +x argocd
-          sudo mv argocd /usr/local/bin/
-
-      - name: Login to Argo
-        run: |
-          argocd login localhost:8080 \
-            --username admin \
-            --password ${{ secrets.ARGO_PASSWORD }} \
-            --insecure
-
-      - name: Sync app
-        run: |
-          APP="n8n-prod"
-          if [[ "${GITHUB_REF_NAME}" == "develop" ]]; then APP="n8n-dev"; fi
-          if [[ "${GITHUB_REF_NAME}" == "uat" ]]; then APP="n8n-uat"; fi
-
-          argocd app sync $APP
-          argocd app wait $APP --health
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "GitHub Actions"
+          git add helm/
+          git commit -m "Update Helm values for ${{ github.ref_name }} image" || echo "No changes"
+          git push
