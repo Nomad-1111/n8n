@@ -1,9 +1,11 @@
 # ----------------------------
 # Service Account
 # ----------------------------
+serviceAccountName: n8n-uat-sa
 serviceAccount:
   create: true
   name: n8n-uat-sa
+
 
 # ----------------------------
 # Image

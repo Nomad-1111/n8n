@@ -12,7 +12,9 @@ spec:
       labels:
         app: n8n-api
     spec:
-      serviceAccountName: {{ .Values.serviceAccountName }}
+      enableServiceLinks: false
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+
       containers:
         - name: n8n
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
