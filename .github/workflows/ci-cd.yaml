@@ -126,7 +126,8 @@ jobs:
       - name: Validate Helm charts
         run: |
           echo "Validating Helm chart syntax..."
-          helm lint helm/
+          # Lint with values file to properly validate templates that require values
+          helm lint helm/ --values helm/values-dev.yaml
           
           echo "Validating Helm chart templates with dev values..."
           helm template n8n-test helm/ -f helm/values-dev.yaml > /dev/null
