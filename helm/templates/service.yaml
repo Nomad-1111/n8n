@@ -1,12 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: n8n-dev-api
+  name: {{ .Release.Name }}-svc
 spec:
-  type: {{ .Values.service.type }}
+  type: ClusterIP
   selector:
-    app: n8n-dev-api
+    app: {{ .Release.Name }}-api
   ports:
-    - protocol: TCP
-      port: {{ .Values.service.port }}
+    - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.targetPort }}

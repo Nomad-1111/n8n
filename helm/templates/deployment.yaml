@@ -1,21 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: n8n-dev-api
+  name: {{ .Release.Name }}-api
 spec:
   replicas: {{ .Values.pods.api.replicas }}
   selector:
     matchLabels:
-      app: n8n-dev-api
+      app: {{ .Release.Name }}-api
   template:
     metadata:
       labels:
-        app: n8n-dev-api
+        app: {{ .Release.Name }}-api
     spec:
       serviceAccountName: {{ .Values.serviceAccount.name }}
       containers:
         - name: api
-          image: "{{ .Values.pods.api.containers.api.image.repository }}:{{ .Values.pods.api.containers.api.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 5678
           env:
@@ -24,13 +25,10 @@ spec:
               value: "{{ .value }}"
             {{- end }}
           volumeMounts:
-            {{- range .Values.pods.api.containers.api.volumeMounts }}
-            - name: {{ .name }}
-              mountPath: {{ .mountPath }}
-            {{- end }}
+            - name: n8n-data
+              mountPath: {{ .Values.persistence.mountPath }}
       volumes:
-        {{- range .Values.volumes }}
-        - name: {{ .name }}
+        - name: n8n-data
           persistentVolumeClaim:
-            claimName: {{ .persistentVolumeClaim.claimName }}
-        {{- end }}
+            claimName: n8n-pvc
+

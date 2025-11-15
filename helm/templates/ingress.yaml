@@ -1,7 +1,9 @@
+{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: n8n-dev-ingress
+  name: {{ .Release.Name }}-ingress
+  annotations: {}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
@@ -12,6 +14,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: n8n-dev-api
+                name: {{ .Release.Name }}-svc
                 port:
                   number: {{ .Values.service.port }}
+{{- end }}
