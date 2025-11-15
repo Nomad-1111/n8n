@@ -111,13 +111,42 @@ spec:
             - name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
               value: "true"
             
-            # Database configuration - using SQLite for simplicity
-            # For production, consider PostgreSQL or MySQL
+            # Database configuration
+            # Supports both SQLite (default) and PostgreSQL
             - name: DB_TYPE
-              value: sqlite
-            # Vacuum SQLite database on startup to optimize performance
-            - name: DB_SQLITE_VACUUM_ON_STARTUP
+              value: {{ (.Values.database.type | default "sqlite") | quote }}
+            
+            {{- if eq (.Values.database.type | default "sqlite") "postgresdb" }}
+            # PostgreSQL configuration
+            - name: DB_POSTGRESDB_HOST
+              value: {{ .Values.database.postgres.host | quote }}
+            - name: DB_POSTGRESDB_PORT
+              value: {{ (.Values.database.postgres.port | default 5432) | quote }}
+            - name: DB_POSTGRESDB_DATABASE
+              value: {{ .Values.database.postgres.database | quote }}
+            - name: DB_POSTGRESDB_USER
+              value: {{ .Values.database.postgres.user | quote }}
+            {{- if .Values.database.postgres.password }}
+            - name: DB_POSTGRESDB_PASSWORD
+              value: {{ .Values.database.postgres.password | quote }}
+            {{- else if .Values.database.postgres.passwordSecret }}
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.postgres.passwordSecret.name }}
+                  key: {{ .Values.database.postgres.passwordSecret.key }}
+            {{- end }}
+            {{- if .Values.database.postgres.ssl.enable }}
+            - name: DB_POSTGRESDB_SSL_ENABLE
               value: "true"
+            - name: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+              value: {{ (.Values.database.postgres.ssl.rejectUnauthorized | default true) | quote }}
+            {{- end }}
+            {{- else }}
+            # SQLite configuration
+            - name: DB_SQLITE_VACUUM_ON_STARTUP
+              value: {{ (.Values.database.sqlite.vacuumOnStartup | default true) | quote }}
+            {{- end }}
           
           # Volume mounts - mounts persistent storage into container
           volumeMounts:
